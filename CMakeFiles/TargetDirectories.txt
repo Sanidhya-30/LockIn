@@ -1,0 +1,4 @@
+/home/ubuntu/LockIn/CMakeFiles/main.dir
+/home/ubuntu/LockIn/CMakeFiles/test.dir
+/home/ubuntu/LockIn/CMakeFiles/edit_cache.dir
+/home/ubuntu/LockIn/CMakeFiles/rebuild_cache.dir
