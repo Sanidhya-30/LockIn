@@ -3,4 +3,4 @@ cd
 cd LockIn/
 cmake .
 make
-
+./main
