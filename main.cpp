@@ -6,17 +6,24 @@ using namespace cv;
 using namespace std;
 
 
-// ----------------------------- SOME CONSTANTS  -------------------------
+// ----------------------------- USER DEFINED VARIABLES  -------------------------
 
 int radius = 50;
 int font = FONT_HERSHEY_SIMPLEX;
-cv::Scalar color_text = cv::Scalar(0, 255, 0); //green
+cv::Scalar color_text = cv::Scalar(0, 255, 0);     //green
 cv::Scalar color_circle = cv::Scalar(0, 255, 255); //yellow
 int thickness = 1;
-String lock_status = "LOOKING";
 int FH = 480 ;  // frame heigth
 int FW = 640 ;  // frame width
-Point mouseClick = Point((FW/2), (FH/2));
+
+// ----------------------------- SOME CONSTANTS  -------------------------
+
+String lock_status = "LOOKING";
+Point mouseClick  = Point((FW/2), (FH/2));
+Point Cursor      = Point((FW/2), (FH/2));
+
+
+
 
 // ----------------------------- MOUSECLICK CALLBACK  -------------------------
 
@@ -26,6 +33,11 @@ void onMouseClick(int event, int x, int y, int flags, void* userdata)
     {
         mouseClick = Point(x, y);
         lock_status = "LOCKED";
+    }
+
+    if (event == EVENT_MOUSEMOVE) 
+    {
+        Cursor = Point(x, y);
     }
    
    // return;
@@ -66,10 +78,18 @@ void frame_text(cv::Mat frame, double fps, int radius, cv::Scalar color_text, in
    //locked
    putText(frame, lock_status, Point(((FW/2)-60),(((FH))-50)), font, 1, color_text, (thickness+1));
 
+   //XY corinates
+   putText(frame, "X: " + to_string(Cursor.x) + " Y: " + to_string(Cursor.y), Point((FH - 60), 30), font, 1, color_text, (thickness + 1));
+
+
    //line
    Point p1(mouseClick.x, 0), p2(FW, mouseClick.y), p3(mouseClick.x, FH), p4(0, mouseClick.y);
    line(frame, p1, p3, Scalar(255, 0, 0), thickness, LINE_4); 
    line(frame, p2, p4, Scalar(255, 0, 0), thickness, LINE_4); 
+
+   //ROI box
+   cv::rectangle(frame, cv::Rect(Point((radius), (radius)), Point((FW-(radius)), (FH-(radius))) ), (200, 0, 0), 1);
+
    return;
 }
 
@@ -127,7 +147,7 @@ int main()
       draw_circle(frame, radius, color_circle, thickness);
 
 
-      if (!mouseClick.inside(Rect(50, 50, (FW-100), (FH-100)))) //checks if click in bound
+      if (!mouseClick.inside(Rect((radius), (radius), (FW-(2*radius)), (FH-(2*radius))))) //checks if click in bound
       {
          clear_screen(frame);
          
