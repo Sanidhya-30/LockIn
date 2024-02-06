@@ -142,6 +142,32 @@ test/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
 .PHONY : test/fast
 
+#=============================================================================
+# Target rules for targets named test2
+
+# Build rule for target.
+test2: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test2
+.PHONY : test2
+
+# fast build rule for target.
+test2/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test2.dir/build.make CMakeFiles/test2.dir/build
+.PHONY : test2/fast
+
+#=============================================================================
+# Target rules for targets named test3
+
+# Build rule for target.
+test3: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test3
+.PHONY : test3
+
+# fast build rule for target.
+test3/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/build
+.PHONY : test3/fast
+
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -190,6 +216,54 @@ test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/test.cpp.s
 .PHONY : test.cpp.s
 
+test2.o: test2.cpp.o
+.PHONY : test2.o
+
+# target to build an object file
+test2.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test2.dir/build.make CMakeFiles/test2.dir/test2.cpp.o
+.PHONY : test2.cpp.o
+
+test2.i: test2.cpp.i
+.PHONY : test2.i
+
+# target to preprocess a source file
+test2.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test2.dir/build.make CMakeFiles/test2.dir/test2.cpp.i
+.PHONY : test2.cpp.i
+
+test2.s: test2.cpp.s
+.PHONY : test2.s
+
+# target to generate assembly for a file
+test2.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test2.dir/build.make CMakeFiles/test2.dir/test2.cpp.s
+.PHONY : test2.cpp.s
+
+test3.o: test3.cpp.o
+.PHONY : test3.o
+
+# target to build an object file
+test3.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.o
+.PHONY : test3.cpp.o
+
+test3.i: test3.cpp.i
+.PHONY : test3.i
+
+# target to preprocess a source file
+test3.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.i
+.PHONY : test3.cpp.i
+
+test3.s: test3.cpp.s
+.PHONY : test3.s
+
+# target to generate assembly for a file
+test3.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.s
+.PHONY : test3.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -200,12 +274,20 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... main"
 	@echo "... test"
+	@echo "... test2"
+	@echo "... test3"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"
+	@echo "... test2.o"
+	@echo "... test2.i"
+	@echo "... test2.s"
+	@echo "... test3.o"
+	@echo "... test3.i"
+	@echo "... test3.s"
 .PHONY : help
 
 

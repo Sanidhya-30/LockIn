@@ -15,6 +15,7 @@ cv::Scalar color_circle = cv::Scalar(0, 255, 255); //yellow
 int thickness = 1;
 int FH = 480 ;  // frame heigth
 int FW = 640 ;  // frame width
+int box_size = 50;
 
 // ----------------------------- SOME CONSTANTS  -------------------------
 
@@ -65,7 +66,9 @@ void clear_screen(cv::Mat frame)
 
 void draw_circle(cv::Mat frame, int radius, cv::Scalar color_circle, int thickness)
 {
-   cv::circle(frame, mouseClick, radius, color_circle, thickness);
+   // cv::circle(frame, mouseClick, radius, color_circle, thickness);
+   cv::Rect rect(Point((int(mouseClick.x) - (box_size/2)), (int(mouseClick.y) - (box_size/2))), Point((int(mouseClick.x) + (box_size/2)), (int(mouseClick.y) + (box_size/2))));
+   cv::rectangle(frame, rect ,color_circle, 1);
    return;
 }
 
@@ -75,7 +78,7 @@ void draw_circle(cv::Mat frame, int radius, cv::Scalar color_circle, int thickne
 
 void frame_text(cv::Mat frame, double fps, int radius, cv::Scalar color_text, int thickness)
 {
-   //locked
+   //locked:status
    putText(frame, lock_status, Point(((FW/2)-60),(((FH))-50)), font, 1, color_text, (thickness+1));
 
    //XY corinates
