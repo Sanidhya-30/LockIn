@@ -24,6 +24,7 @@ String gimble_stat  = "";
 Point mouseClick    = Point((FW/2), (FH/2));
 Point Cursor        = Point((FW/2), (FH/2));
 Point cam           = Point((FW/8),(7*FH/8));
+double medianFPS = 0.0;
 std::chrono::_V2::system_clock::time_point lastTime;
 
 // ----------------------------- MOUSECLICK CALLBACK  -------------------------
@@ -147,18 +148,35 @@ void frame_text(cv::Mat frame, double fps, int radius, cv::Scalar color, int thi
 
 double cal_fps(cv::Mat frame, double fps)
 {
-   // static auto lastTime = chrono::high_resolution_clock::now();
-   auto currentTime = chrono::high_resolution_clock::now();
-   double elapsedSeconds = std::chrono::duration_cast<chrono::duration<double>>(currentTime - lastTime).count();
+    static std::vector<double> fpsHistory;
+    auto currentTime = chrono::high_resolution_clock::now();
+    double elapsedSeconds = std::chrono::duration_cast<chrono::duration<double>>(currentTime - lastTime).count();
    
-   // Update FPS using weighted average
-   fps = (0.85 / elapsedSeconds) + ((1 - 0.85) * fps);
-   lastTime = currentTime;
+    // Update FPS using weighted average
+    fps = (0.85 / elapsedSeconds) + ((1 - 0.85) * fps);
+    lastTime = currentTime;
 
-   //fps
-   putText(frame, "FPS: " + to_string(static_cast<int>(fps)), Point(15, 35), font, 1, color, (thickness+1));
+    fpsHistory.push_back(fps);
+
+    // Keep the history size limited to 10
+    if (fpsHistory.size() > 5)
+        fpsHistory.erase(fpsHistory.begin());
+
+    // Calculate median FPS
+    if (!fpsHistory.empty())
+    {
+        std::sort(fpsHistory.begin(), fpsHistory.end());
+        size_t size = fpsHistory.size();
+        if (size % 2 == 0)
+            medianFPS = (fpsHistory[size / 2 - 1] + fpsHistory[size / 2]) / 2.0;
+        else
+            medianFPS = fpsHistory[size / 2];
+    }
+
+    //fps
+    putText(frame, "FPS: " + to_string(static_cast<int>(medianFPS)), Point(15, 35), font, 1, color, (thickness+1));
    
-   return fps;
+    return fps;
 }
 
 
