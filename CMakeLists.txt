@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 project(LockIn)
 set(CMAKE_CXX_STANDARD 17)
 find_package( OpenCV REQUIRED )
+
+# ADD_DEFINITIONS ("-Wall -Wextra -Werror -Wno-unused-parameter")
+
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories("/usr/local/include/opencv4/opencv2")
 
