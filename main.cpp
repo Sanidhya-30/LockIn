@@ -1,4 +1,7 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/tracking.hpp>
+#include <opencv2/tracking/tracking_legacy.hpp>
 #include <iostream>
 #include <string.h>
 
@@ -26,6 +29,7 @@ Point Cursor        = Point((FW/2), (FH/2));
 Point cam           = Point((FW/8),(7*FH/8));
 double medianFPS = 0.0;
 std::chrono::_V2::system_clock::time_point lastTime;
+
 
 // ----------------------------- MOUSECLICK CALLBACK  -------------------------
 
@@ -186,7 +190,8 @@ double cal_fps(cv::Mat frame, double fps)
 
 int main() 
 {
-   cv::VideoCapture cap(-1);
+    cv::VideoCapture cap("/home/ubuntu/LockIn/videos/heplicopter.mp4");
+//    cv::VideoCapture cap(0);
    
    if (!cap.isOpened()) 
    {
@@ -196,40 +201,53 @@ int main()
 
    // FW = static_cast<int>(cap.get(CAP_PROP_FRAME_WIDTH));
    // FH = static_cast<int>(cap.get(CAP_PROP_FRAME_HEIGHT));
+    
+    cv::Mat img, frame;
+    cap >> frame;
 
-   cv::namedWindow("Display Window");
-   setMouseCallback("Display Window", onMouseClick, NULL);
+    // Select a region to track using a bounding box
+    cv::Rect2d roi = cv::selectROI("Select ROI", frame, false, false);
+    cv::namedWindow("Display Window");
+    setMouseCallback("Display Window", onMouseClick, NULL);
+    
+    // Initialize the MOSSE tracker
+    Ptr<legacy::TrackerMOSSE> tracker = cv::legacy::TrackerMOSSE::create();
+    tracker->init(frame, roi);
 
    double fps = 0;
    
     while (true) 
     {
+        cap>>frame;
         lastTime = chrono::high_resolution_clock::now();
+        
         int key = cv::waitKey(1); // Change the delay to control frame rate
-
         if (key == 27) // 'Esc' key
             break;
 
-        cv::Mat frame;
-        cap >> frame;
-
-        if (frame.empty()) {
-            cerr << "Error capturing frame from the camera!" << endl;
-            break;
-        }
-
         frame_text(frame, fps, radius, color, thickness);
-        draw_circle(frame, radius, color, thickness);
+        //draw_circle(frame, radius, color, thickness);
         camera_fov(frame, key);
         fps = cal_fps(frame, fps);
 
         if (!mouseClick.inside(Rect((radius), (radius), (FW - (2 * radius)), (FH - (2 * radius))))) //checks if click in bound
+        {clear_screen(frame);}
+
+        bool success = tracker->update(frame, roi);
+
+        if (success)
         {
-            clear_screen(frame);
+            cv::rectangle(frame, roi, cv::Scalar(0, 255, 0), 2);
+            lock_status = "LOCKED";
         }
+        
+        else {lock_status = "TRACKING FAILED";}
 
         cv::imshow("Display Window", frame);
     }
 
+    cout<<"releasing cap";
+    
+    cap.release();
     return 0;
 }

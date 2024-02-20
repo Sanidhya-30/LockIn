@@ -1,217 +1,166 @@
 #include <opencv2/opencv.hpp>
-#include <iostream>
-#include <fstream>
-// #include "FaceDetector.h"
-#include "opencv2/objdetect.hpp"
-#include "opencv2/videoio.hpp"
+#include <opencv2/core/core_c.h>
+#include <opencv2/tracking.hpp>
+#include <opencv2/tracking/tracking_legacy.hpp>
+#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
-#include "numeric"
+#include "opencv2/xfeatures2d.hpp"
+
 using namespace cv;
 using namespace std;
 
+const int MAX_FEATURES = 500;
+const float GOOD_MATCH_PERCENT = 0.15f;
 
-// ------------------------------ VARIABLES ---------------------------- //
-
-std::chrono::_V2::system_clock::time_point start;
-double medianFPS = 0;
-int n =10 ;
-int alpha = 0.85;
-
-String face_cascade_name = "/home/ubuntu/LockIn/data/haarcascades/haarcascade_frontalface_alt2.xml";
-CascadeClassifier face_cascade;
-String window_name = "Capture - Face detection";
-
-
-
-// ------------------------------ PROCESS FRAME ---------------------------- //
-
-// void proc(cv::Mat frame) 
-// {
-//     // Add your frame processing logic here
-//     std::vector<Rect> faces;
-//     Mat frame_gray;
-//     //Conversion of frame to grayscale
-//     cvtColor(frame, frame_gray, COLOR_BGR2GRAY); 
-//     //Contrast enhance(Spread out intensity distribution)
-//     equalizeHist(frame_gray, frame_gray);       
-//     //-- Detect faces
-//     if (!face_cascade.load("path/to/haarcascade_frontalface_default.xml")) {
-//         std::cerr << "Error loading face cascade." << std::endl;
-//     face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
-//     cout << faces.size();
-//     for (size_t i = 0; i < faces.size(); i++)
-//     {
-//         Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
-//         ellipse(frame, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 4, 8, 0);
-//         Mat faceROI = frame_gray(faces[i]);
-//     }   
-
-// }
-// }
-
-
-
-
-// ------------------------------ MEDIAN FPS ---------------------------- //
-
-double median_fps(double fps, int n)
+cv::Rect thresholding(cv::Mat frame, cv::Rect2d& roi, int thresh)
 {
-    static std::vector<double> fpsHistory;
-    auto currentTime = chrono::high_resolution_clock::now();
-    double elapsedSeconds = std::chrono::duration_cast<chrono::duration<double>>(currentTime - start).count();
+    // Convert images to grayscale
+    cv::Mat roiFrame = frame(roi);
+    Mat im1Gray, im2Gray;
+    cvtColor(roiFrame, im1Gray, cv::COLOR_BGR2GRAY);
+    cvtColor(frame, im2Gray, cv::COLOR_BGR2GRAY);
 
-    // Update FPS using weighted average
-    fps = (0.85 / elapsedSeconds) + ((1 - 0.85) * fps);
+    // Variables to store keypoints and descriptors
+    std::vector<KeyPoint> keypoints1, keypoints2;
+    Mat descriptors1, descriptors2;
 
-    fpsHistory.push_back(fps);
+    // Detect ORB features and compute descriptors within the ROI
+    Ptr<ORB> orb = ORB::create(MAX_FEATURES);
+    orb->detectAndCompute(im1Gray, Mat(), keypoints1, descriptors1);
+    orb->detectAndCompute(im2Gray, Mat(), keypoints2, descriptors2);
 
-    if (fpsHistory.size() > n)
-        fpsHistory.erase(fpsHistory.begin());
+    // Match features.
+    std::vector<DMatch> matches;
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
+    matcher->match(descriptors1, descriptors2, matches, Mat());
 
-    // Calculate median FPS
-    if (!fpsHistory.empty()) {
-        std::sort(fpsHistory.begin(), fpsHistory.end());
-        size_t size = fpsHistory.size();
-        if (size % 2 == 0)
-            medianFPS = (fpsHistory[size / 2 - 1] + fpsHistory[size / 2]) / 2.0;
-        else
-            medianFPS = fpsHistory[size / 2];
-    }
+    // Sort matches by score
+    std::sort(matches.begin(), matches.end());
 
-    return medianFPS;
-}
+    // Remove not so good matches(Lowe ratio test)
+    const int numGoodMatches = matches.size() * GOOD_MATCH_PERCENT;
+    matches.erase(matches.begin() + numGoodMatches, matches.end());
 
+    // Draw top matches
+    Mat imMatches;
+    drawMatches(roiFrame, keypoints1, frame, keypoints2, matches, imMatches);
+    imshow("matches.jpg", imMatches);
 
+    // Extract location of good matches
+    std::vector<Point2f> points1, points2;
 
-
-// ------------------------------ MEAN FPS ---------------------------- //
-
-double mean_fps(double fps, int n) 
-{
-    double total=0, meanFPS=0;
-    static std::vector<double> fpsHistory;
-    auto currentTime = chrono::high_resolution_clock::now();
-    double elapsedSeconds = chrono::duration_cast<chrono::duration<double>>(currentTime - start).count();
-
-    fps = (0.85 / elapsedSeconds) + ((1 - 0.85) * fps);
-    fpsHistory.push_back(fps);
-
-    if (fpsHistory.size() > n)
-        fpsHistory.erase(fpsHistory.begin());
-
-
-    if (!fpsHistory.empty()) 
+    for (size_t i = 0; i < matches.size(); i++)
     {
-        std::sort(fpsHistory.begin(), fpsHistory.end());
-        size_t size = fpsHistory.size();
-        total = accumulate(fpsHistory.begin(),fpsHistory.end(),0);
-        meanFPS = total/size;
+        points1.push_back(keypoints1[matches[i].queryIdx].pt);
+        points2.push_back(keypoints2[matches[i].trainIdx].pt);
     }
-    // cout<<fpsHistory[0]<<endl;
 
-    return meanFPS;
+    std::vector<Point2f> obj_corners(4);
+    std::vector<Point2f> scene_corners(4);
+
+    obj_corners[0] = cv::Point(0, 0);
+    obj_corners[1] = cv::Point(roi.width, 0);
+    obj_corners[2] = Point2f(roi.width, roi.height);
+    obj_corners[3] = Point2f(0, roi.height);
+
+    // Find homography
+    Mat h = findHomography(points1, points2, RANSAC);
+
+    // Use homography to warp image
+    perspectiveTransform(obj_corners, scene_corners, h);
+
+    line(frame, scene_corners[0], scene_corners[1], Scalar(255, 0, 0), 2, LINE_8, 0);
+    line(frame, scene_corners[1], scene_corners[2], Scalar(255, 0, 0), 2, LINE_8, 0);
+    line(frame, scene_corners[2], scene_corners[3], Scalar(255, 0, 0), 2, LINE_8, 0);
+    line(frame, scene_corners[3], scene_corners[0], Scalar(255, 0, 0), 2, LINE_8, 0);
+
+    return roi;
 }
 
-
-
-
-// ------------------------------ MOVING AVG. FPS ---------------------------- //
-
-double exponential_moving_average(double fps, double alpha) 
+int main()
 {
-    static std::vector<double> fpsHistory;
-    auto currentTime = chrono::high_resolution_clock::now();
-    double elapsedSeconds = std::chrono::duration_cast<chrono::duration<double>>(currentTime - start).count();
+    int mode;
+    string x;
+    cout<<"Select either : \n 1. heplicopter Video\n 2. Helicopter Video\n 3. cat Video\n";
+    cin>>mode;
+    int i = 0;
+
+    // Open the webcam"
+    switch (mode)
+    {
+
+    case 1:
+        x = "/home/ubuntu/LockIn/videos/helicopter.mp4";
+        break;
+
+    case 2:
+        x = "/home/ubuntu/LockIn/videos/heplicopter.mp4";
+        break;
+
+    case 3:
+        x = "/home/ubuntu/LockIn/videos/car.mp4";
+        break;
     
-    // Update FPS using exponential moving average
-    fps = alpha / (elapsedSeconds) + (1 - alpha) * fps;
+    default:
+        // cv::VideoCapture cap(0);
+        break;
+    }
 
-    fpsHistory.push_back(fps);
+    cv::VideoCapture cap(x);
 
-    // Keep the history size limited to 10
-    if (fpsHistory.size() > 10)
-        fpsHistory.erase(fpsHistory.begin());
-
-    return fps;
-}
-
-
-
-
-// ------------------------------ LOGGING DATA TO CSV ---------------------------- //
-
-void log_data(ofstream& outputFile, int frameCount, double medianFPS, double meanFPS, double tsliceFPS, double emaFPS, double instFPS) 
-    {outputFile << frameCount << ',' << medianFPS << ',' << meanFPS << ',' << tsliceFPS << ',' << emaFPS << ',' << instFPS << '\n';}
-
-
-
-
-int main() 
-{    
-    ofstream outputFile("fps_data.csv");
-    
-    if (!outputFile.is_open()) 
-    {
-        cerr << "Error opening CSV file" << endl;
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Couldn't open the webcam." << std::endl;
         return -1;
     }
 
-    outputFile << "Frame,MedianFPS,MeanFPS,TsliceFPS,EMAFPS,InstFPS\n";
+    // Read the first frame
+    cv::Mat frame;
+    cap >> frame;
 
-    cv::VideoCapture cap(-1);
+    // Select a region to track using a bounding box
+    waitKey(1000);
+    cv::Rect2d roi = cv::selectROI("Select ROI", frame, false, false);
 
-    if (!cap.isOpened()) 
+    while (true) 
     {
-        cerr << "Error opening camera!" << endl;
-        return -1;
-    }
-
-    int n = 10;  // Adjust the value based on your requirements
-    double alpha = 0.85;
-    double fps = 0;
-    int frameCount = 0;
-
-    Ptr<Tracker> tracker = TrackerMIL::create();
-    if (!tracker)
-    {
-        cerr << "Error creating TrackerMIL" << endl;
-        return -1;
-    }
-
-    while(true) 
-    {
-        start = chrono::high_resolution_clock::now();
-        cv::Mat frame;
-        cap >> frame;
-        int key = cv::waitKey(1); // Change the delay to control frame rate
-
-        Rect bbox(320, 240, 100, 100); 
-        tracker->init(frame, bbox);
-        rectangle(frame, bbox, Scalar(255, 0, 0), 2, 1);
-        bool ok = tracker->update(frame, bbox);
-        if (!ok)
-        {
-            cerr << "Error updating tracker" << endl;
-            // Handle the error, for example, by breaking out of the loop or returning from the function.
-        }
+        // Initialize the MOSSE tracker
+        Ptr<legacy::TrackerMOSSE> tracker = cv::legacy::TrackerMOSSE::create();
+        tracker->init(frame, roi);
         
-        auto end = chrono::high_resolution_clock::now();
-        chrono::duration<double> diffT = end - start;
+        // Read a new frame
+        cap >> frame;
+        if (frame.empty())
+            break;
 
-        medianFPS = median_fps(fps, n);
-        double emaFPS = exponential_moving_average(fps, alpha);
-        double meanFPS = mean_fps(fps, n);
-        double tsliceFPS = 1 / diffT.count();
-        double instFPS = 1 / diffT.count();
-        frameCount++;
-        log_data(outputFile, frameCount, medianFPS, meanFPS, tsliceFPS, emaFPS, instFPS);
+        // Update the tracker with the new frame
+        bool success = tracker->update(frame, roi);
 
-        if (key == 27) {break;} // 'Esc' key
+        // Draw the bounding box on the frame
+        if (success)
+            cv::rectangle(frame, roi, cv::Scalar(0, 255, 0), 2);
+        else
+            cv::putText(frame, "Tracking failed", cv::Point(100, 80), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 0, 255), 2);
 
-        cv::imshow("Display Window", frame);
+        int padding = 10;
+        cv::Rect2d uproi(roi.x - padding, roi.y - padding, roi.width + 2 * padding, roi.height + 2 * padding);
+        cv::Rect2d newroi = thresholding(frame, uproi, 150);
+
+        // Display the frame
+        cv::imshow("MOSSE Tracker", frame);
+        cout<<roi.area()<<"\n";
+
+        // Exit the loop if the user presses 'Esc'
+        char key = cv::waitKey(33);
+        if (key == 27) // ASCII code for 'Esc'
+            break;
+
+        // i = i+10;
+        tracker.release();
     }
 
-    outputFile.close();
+    // Release the video capture object
+    cap.release();
+
     return 0;
 }

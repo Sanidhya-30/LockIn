@@ -130,6 +130,32 @@ main/fast:
 .PHONY : main/fast
 
 #=============================================================================
+# Target rules for targets named fpstest
+
+# Build rule for target.
+fpstest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fpstest
+.PHONY : fpstest
+
+# fast build rule for target.
+fpstest/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fpstest.dir/build.make CMakeFiles/fpstest.dir/build
+.PHONY : fpstest/fast
+
+#=============================================================================
+# Target rules for targets named tracker
+
+# Build rule for target.
+tracker: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tracker
+.PHONY : tracker
+
+# fast build rule for target.
+tracker/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tracker.dir/build.make CMakeFiles/tracker.dir/build
+.PHONY : tracker/fast
+
+#=============================================================================
 # Target rules for targets named test
 
 # Build rule for target.
@@ -156,17 +182,41 @@ test2/fast:
 .PHONY : test2/fast
 
 #=============================================================================
-# Target rules for targets named test3
+# Target rules for targets named mousecbTest
 
 # Build rule for target.
-test3: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test3
-.PHONY : test3
+mousecbTest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 mousecbTest
+.PHONY : mousecbTest
 
 # fast build rule for target.
-test3/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/build
-.PHONY : test3/fast
+mousecbTest/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mousecbTest.dir/build.make CMakeFiles/mousecbTest.dir/build
+.PHONY : mousecbTest/fast
+
+fpstest.o: fpstest.cpp.o
+.PHONY : fpstest.o
+
+# target to build an object file
+fpstest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fpstest.dir/build.make CMakeFiles/fpstest.dir/fpstest.cpp.o
+.PHONY : fpstest.cpp.o
+
+fpstest.i: fpstest.cpp.i
+.PHONY : fpstest.i
+
+# target to preprocess a source file
+fpstest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fpstest.dir/build.make CMakeFiles/fpstest.dir/fpstest.cpp.i
+.PHONY : fpstest.cpp.i
+
+fpstest.s: fpstest.cpp.s
+.PHONY : fpstest.s
+
+# target to generate assembly for a file
+fpstest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fpstest.dir/build.make CMakeFiles/fpstest.dir/fpstest.cpp.s
+.PHONY : fpstest.cpp.s
 
 main.o: main.cpp.o
 .PHONY : main.o
@@ -191,6 +241,30 @@ main.s: main.cpp.s
 main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/main.cpp.s
 .PHONY : main.cpp.s
+
+mousecbTest.o: mousecbTest.cpp.o
+.PHONY : mousecbTest.o
+
+# target to build an object file
+mousecbTest.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mousecbTest.dir/build.make CMakeFiles/mousecbTest.dir/mousecbTest.cpp.o
+.PHONY : mousecbTest.cpp.o
+
+mousecbTest.i: mousecbTest.cpp.i
+.PHONY : mousecbTest.i
+
+# target to preprocess a source file
+mousecbTest.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mousecbTest.dir/build.make CMakeFiles/mousecbTest.dir/mousecbTest.cpp.i
+.PHONY : mousecbTest.cpp.i
+
+mousecbTest.s: mousecbTest.cpp.s
+.PHONY : mousecbTest.s
+
+# target to generate assembly for a file
+mousecbTest.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/mousecbTest.dir/build.make CMakeFiles/mousecbTest.dir/mousecbTest.cpp.s
+.PHONY : mousecbTest.cpp.s
 
 test.o: test.cpp.o
 .PHONY : test.o
@@ -240,29 +314,29 @@ test2.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test2.dir/build.make CMakeFiles/test2.dir/test2.cpp.s
 .PHONY : test2.cpp.s
 
-test3.o: test3.cpp.o
-.PHONY : test3.o
+tracker.o: tracker.cpp.o
+.PHONY : tracker.o
 
 # target to build an object file
-test3.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.o
-.PHONY : test3.cpp.o
+tracker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tracker.dir/build.make CMakeFiles/tracker.dir/tracker.cpp.o
+.PHONY : tracker.cpp.o
 
-test3.i: test3.cpp.i
-.PHONY : test3.i
+tracker.i: tracker.cpp.i
+.PHONY : tracker.i
 
 # target to preprocess a source file
-test3.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.i
-.PHONY : test3.cpp.i
+tracker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tracker.dir/build.make CMakeFiles/tracker.dir/tracker.cpp.i
+.PHONY : tracker.cpp.i
 
-test3.s: test3.cpp.s
-.PHONY : test3.s
+tracker.s: tracker.cpp.s
+.PHONY : tracker.s
 
 # target to generate assembly for a file
-test3.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/test3.dir/build.make CMakeFiles/test3.dir/test3.cpp.s
-.PHONY : test3.cpp.s
+tracker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tracker.dir/build.make CMakeFiles/tracker.dir/tracker.cpp.s
+.PHONY : tracker.cpp.s
 
 # Help Target
 help:
@@ -272,22 +346,30 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... fpstest"
 	@echo "... main"
+	@echo "... mousecbTest"
 	@echo "... test"
 	@echo "... test2"
-	@echo "... test3"
+	@echo "... tracker"
+	@echo "... fpstest.o"
+	@echo "... fpstest.i"
+	@echo "... fpstest.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... mousecbTest.o"
+	@echo "... mousecbTest.i"
+	@echo "... mousecbTest.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"
 	@echo "... test2.o"
 	@echo "... test2.i"
 	@echo "... test2.s"
-	@echo "... test3.o"
-	@echo "... test3.i"
-	@echo "... test3.s"
+	@echo "... tracker.o"
+	@echo "... tracker.i"
+	@echo "... tracker.s"
 .PHONY : help
 
 

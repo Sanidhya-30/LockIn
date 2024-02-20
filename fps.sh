@@ -3,6 +3,6 @@ cd ~/LockIn/
 cmake .
 make
 # rm -f fps_data.csv
-./test2
+./fpsTest
 cd ~/thirdeye/src/test
 python3 plot.py

@@ -411,8 +411,20 @@ CMakeFiles/main.dir/main.cpp.o: main.cpp \
   /usr/local/include/opencv4/opencv2/stitching/detail/camera.hpp \
   /usr/local/include/opencv4/opencv2/video.hpp \
   /usr/local/include/opencv4/opencv2/video/tracking.hpp \
-  /usr/local/include/opencv4/opencv2/video/background_segm.hpp
+  /usr/local/include/opencv4/opencv2/video/background_segm.hpp \
+  /usr/local/include/opencv4/opencv2/tracking.hpp \
+  /usr/local/include/opencv4/opencv2/tracking/tracking_legacy.hpp \
+  /usr/local/include/opencv4/opencv2/tracking/tracking_internals.hpp \
+  /usr/local/include/opencv4/opencv2/video/detail/tracking.detail.hpp \
+  /usr/local/include/opencv4/opencv2/tracking/feature.hpp \
+  /usr/local/include/opencv4/opencv2/tracking/onlineBoosting.hpp
 
+
+/usr/local/include/opencv4/opencv2/tracking/feature.hpp:
+
+/usr/local/include/opencv4/opencv2/tracking/tracking_legacy.hpp:
+
+/usr/local/include/opencv4/opencv2/tracking.hpp:
 
 /usr/local/include/opencv4/opencv2/video/background_segm.hpp:
 
@@ -804,6 +816,8 @@ main.cpp:
 
 /usr/local/include/opencv4/opencv2/core/matx.hpp:
 
+/usr/local/include/opencv4/opencv2/video/detail/tracking.detail.hpp:
+
 /usr/include/c++/9/pstl/pstl_config.h:
 
 /usr/include/c++/9/bits/locale_conv.h:
@@ -1164,6 +1178,8 @@ main.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/math-vector.h:
 
+/usr/local/include/opencv4/opencv2/tracking/onlineBoosting.hpp:
+
 /usr/include/x86_64-linux-gnu/bits/mathcalls.h:
 
 /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h:
@@ -1179,6 +1195,8 @@ main.cpp:
 /usr/include/c++/9/bits/specfun.h:
 
 /usr/include/c++/9/tr1/bessel_function.tcc:
+
+/usr/local/include/opencv4/opencv2/tracking/tracking_internals.hpp:
 
 /usr/local/include/opencv4/opencv2/flann/allocator.h:
 
