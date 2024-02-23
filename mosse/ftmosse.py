@@ -1,136 +1,74 @@
 import cv2
-from imutils.video import VideoStream
-import imutils
 import numpy as np
 
-def select_roi(frame):
-    # Display the frame and ask the user to select a region of interest (ROI)
-    rect = cv2.selectROI(frame, fromCenter=False, showCrosshair=True)
-    cv2.destroyAllWindows()  # Close the window after ROI selection
-    return rect
+#Define object specific variables  
+dist = 0
+focal = 450
+pixels = 30
+width = 4
 
-def initialize_tracker(frame, init_bbox, tracker_type):
-    # Initialize the tracker based on the provided type
-    if tracker_type == 'MOSSE':
-        tracker = cv2.TrackerMOSSE_create()
-    elif tracker_type == 'SIFT':
-        sift = cv2.SIFT_create()
-        kp, des = sift.detectAndCompute(frame, None)
-        tracker = cv2.Tracker_create("SIFT")
-        tracker.init(frame, (int(init_bbox[0]), int(init_bbox[1]), int(init_bbox[2]), int(init_bbox[3])))
-    elif tracker_type == 'SURF':
-        surf = cv2.xfeatures2d.SURF_create()
-        kp, des = surf.detectAndCompute(frame, None)
-        tracker = cv2.Tracker_create("SURF")
-        tracker.init(frame, (int(init_bbox[0]), int(init_bbox[1]), int(init_bbox[2]), int(init_bbox[3])))
-    elif tracker_type == 'ORB':
-        orb = cv2.ORB_create()
-        kp, des = orb.detectAndCompute(frame, None)
-        tracker = cv2.Tracker_create("ORB")
-        tracker.init(frame, (int(init_bbox[0]), int(init_bbox[1]), int(init_bbox[2]), int(init_bbox[3])))
-    elif tracker_type == 'AKAZE':
-        akaze = cv2.AKAZE_create()
-        kp, des = akaze.detectAndCompute(frame, None)
-        tracker = cv2.Tracker_create("KCF")
-        tracker.init(frame, (int(init_bbox[0]), int(init_bbox[1]), int(init_bbox[2]), int(init_bbox[3])))
-    else:
-        raise ValueError("Invalid tracker type")
+def getdatD(rect, frame):
 
-    return tracker
+    #find no of pixels covered
+    pixels = rect[1][0]
+    print(pixels)
+    #calculate distance
+    dist = (width*focal)/pixels
 
-def update_tracker(frame, tracker):
-    # Update the tracker using the new frame
-    success, bbox = tracker.update(frame)
-    return success, bbox
-
-def blob_detection(frame):
-    # Perform blob detection using SimpleBlobDetector
-    params = cv2.SimpleBlobDetector_Params()
-
-    # Set parameters (you can adjust these based on your requirements)
-    params.minThreshold = 10
-    params.maxThreshold = 200
-    params.filterByArea = True
-    params.minArea = 100
-    params.filterByCircularity = True
-    params.minCircularity = 0.8
-
-    detector = cv2.SimpleBlobDetector_create(params)
-    keypoints = detector.detect(frame)
-
-    # Draw blobs on the frame
-    frame_with_blobs = cv2.drawKeypoints(frame, keypoints, np.array([]), (0, 0, 255),
-                                         cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-    return frame_with_blobs
+    return dist
 
 # Main function
 def main():
-    vs = cv2.VideoCapture(0)  # Webcam stream
+    # vs = cv2.VideoCapture(0)  # Webcam stream
+    vs = cv2.VideoCapture("/home/ubuntu/LockIn/videos/car.mp4")
 
     # Ensure the webcam is initialized
     if not vs.isOpened():
-        print("Error: Unable to access the webcam.")
+        print("webcam kharaab")
         return
 
     (grabbed,frame) = vs.read()
-    if frame is None:
-        print("Error: Unable to read the first frame from the webcam.")
-        return
 
     # Select ROI
-    init_bbox = select_roi(frame)
+    bbox = cv2.selectROI(frame)
 
     # Initialize trackers with different algorithms
-    tracker_mosse = initialize_tracker(frame, init_bbox, 'MOSSE')
-    tracker_sift = initialize_tracker(frame, init_bbox, 'SIFT')
-    tracker_surf = initialize_tracker(frame, init_bbox, 'SURF')
-    tracker_orb = initialize_tracker(frame, init_bbox, 'ORB')
-    tracker_akaze = initialize_tracker(frame, init_bbox, 'AKAZE')
+    tracker = cv2.TrackerMedianFlow_create()
+    ok = tracker.init(frame, bbox)
 
     while True:
+
+        timer = cv2.getTickCount()
+
         frame = vs.read()
+        
         if frame is None:
-            print("Error: Unable to read a frame from the webcam.")
+            print("Webcam nava chakko")
             break
 
-        frame = imutils.resize(frame, width=800)
+        ok, bbox = tracker.update(frame)
 
-        # Update trackers
-        success_mosse, bbox_mosse = update_tracker(frame, tracker_mosse)
-        success_sift, bbox_sift = update_tracker(frame, tracker_sift)
-        success_surf, bbox_surf = update_tracker(frame, tracker_surf)
-        success_orb, bbox_orb = update_tracker(frame, tracker_orb)
-        success_akaze, bbox_akaze = update_tracker(frame, tracker_akaze)
+        if ok:
+            # Tracking success
+            p1 = (int(bbox[0]), int(bbox[1]))
+            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
+            cv2.rectangle(frame, p1, p2, (255,0,0), 2, 1)
+        else :
+            # Tracking failure
+            cv2.putText(frame, "Tracking failure detected", (100,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75,(0,0,255),2)
+     
+        # Display result
+        D = getdatD(bbox, frame)
+        cv2.putText(frame, str(float(D)) + " m", (100,20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50),2)
+      
+        # Exit if ESC pressed
+        k = cv2.waitKey(1) & 0xff
+        if k == 27 : break
 
-        # Display the output side by side
-        frame_output = np.hstack((frame, frame))
-
-        if success_mosse:
-            (x, y, w, h) = [int(i) for i in bbox_mosse]
-            cv2.rectangle(frame_output, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        if success_sift:
-            (x, y, w, h) = [int(i) for i in bbox_sift]
-            cv2.rectangle(frame_output, (x + frame.shape[1], y), (x + w + frame.shape[1], y + h), (0, 0, 255), 2)
-
-        if success_surf:
-            (x, y, w, h) = [int(i) for i in bbox_surf]
-            cv2.rectangle(frame_output, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
-        if success_orb:
-            (x, y, w, h) = [int(i) for i in bbox_orb]
-            cv2.rectangle(frame_output, (x + frame.shape[1], y), (x + w + frame.shape[1], y + h), (255, 255, 0), 2)
-
-        if success_akaze:
-            (x, y, w, h) = [int(i) for i in bbox_akaze]
-            cv2.rectangle(frame_output, (x, y), (x + w, y + h), (0, 255, 255), 2)
-
-        cv2.imshow("Object Tracking with Different Algorithms", frame_output)
-
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            break
+        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
+        # Display FPS on frame
+        cv2.putText(frame, "FPS : " + str(int(fps)), (100,50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50,170,50), 2)
+        cv2.imshow("Mossi D", frame)
 
     cv2.destroyAllWindows()
     vs.stop()
