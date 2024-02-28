@@ -6,9 +6,112 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <iostream>
+#include <cmath>
+#include <vector>
 
 using namespace cv;
 using namespace std;
+
+// Camera Properties
+double focal_length = 1000;
+double width = 16.5;
+int max_memory_length = 20;
+std::vector<double> dist_memory;
+int frame_counter = 0;
+
+// Update thresholding for MWIR feed
+cv::Rect thresholding(cv::Mat , cv::Rect2d& , int )
+void cal_distance(cv::Rect , double& , double& , int& , std::vector<double>& , int& )
+
+int main()
+{
+    int mode;
+    string x;
+    cout<<"Seelct either : \n 1. heplicopter Video\n 2. Helicopter Video\n 3. cat Video\n";
+    cin>>mode;
+    int i = 0;
+
+    // // Open the webcam"
+    // switch (mode)
+    // {
+
+    // case 1:
+    //     x = "/home/ubuntu/LockIn/videos/helicopter.mp4";
+    //     break;
+
+    // case 2:
+    //     x = "/home/ubuntu/LockIn/videos/heplicopter.mp4";
+    //     break;
+
+    // case 3:
+    //     x = "/home/ubuntu/LockIn/videos/car.mp4";
+    //     break;
+    
+    // default:
+    //     cv::VideoCapture cap(0);
+    //     break;
+    // }
+
+    cv::VideoCapture cap(0);
+
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Couldn't open the webcam." << std::endl;
+        return -1;
+    }
+
+    // Read the first frame
+    cv::Mat frame;
+    cap >> frame;
+
+    // Select a region to track using a bounding box
+    waitKey(1000);
+    
+    cv::Rect2d roi = cv::selectROI("Select ROI", frame, false, false);
+    
+    while (true) 
+    {
+        // Initialize the MOSSE tracker
+        Ptr<legacy::TrackerMOSSE> tracker = cv::legacy::TrackerMOSSE::create();
+        tracker->init(frame, roi);
+        cal_distance(roi, focal_length, width, max_memory_length, dist_memory, frame_counter);
+
+        
+        // Read a new frame
+        cap >> frame;
+        if (frame.empty())
+            break;
+
+        // Update the tracker with the new frame
+        bool success = tracker->update(frame, roi);
+
+        // Draw the bounding box on the frame
+        if (success)
+            cv::rectangle(frame, roi, cv::Scalar(0, 255, 0), 2);
+        else
+            cv::putText(frame, "Tracking failed", cv::Point(100, 80), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 0, 255), 2);
+
+        int padding = 10;
+        cv::Rect2d uproi(roi.x - padding, roi.y - padding, roi.width + 2 * padding, roi.height + 2 * padding);
+        cv::Rect2d newroi = thresholding(frame, uproi, 150);
+
+        // Display the frame
+        cv::imshow("MOSSE Tracker", frame);
+        cout<<roi.area()<<"\n";
+
+        // Exit the loop if the user presses 'Esc'
+        char key = cv::waitKey(33);
+        if (key == 27) // ASCII code for 'Esc'
+            break;
+
+        // i = i+10;
+        tracker.release();
+    }
+
+    // Release the video capture object
+    cap.release();
+
+    return 0;
+}
 
 
 cv::Rect thresholding(cv::Mat frame, cv::Rect2d& roi, int thresh)
@@ -95,89 +198,30 @@ cv::Rect thresholding(cv::Mat frame, cv::Rect2d& roi, int thresh)
 }
 
 
-int main()
+void cal_distance(cv::Rect rectangle, double& focal_length, double& width, int& max_memory_length, std::vector<double>& dist_memory, int& frame_counter) 
 {
-    int mode;
-    string x;
-    cout<<"Seelct either : \n 1. heplicopter Video\n 2. Helicopter Video\n 3. cat Video\n";
-    cin>>mode;
-    int i = 0;
+    double pixels = rectangle.area();
+    double dist = round((width * focal_length) / pixels, 2);
 
-    // // Open the webcam"
-    // switch (mode)
-    // {
-
-    // case 1:
-    //     x = "/home/ubuntu/LockIn/videos/helicopter.mp4";
-    //     break;
-
-    // case 2:
-    //     x = "/home/ubuntu/LockIn/videos/heplicopter.mp4";
-    //     break;
-
-    // case 3:
-    //     x = "/home/ubuntu/LockIn/videos/car.mp4";
-    //     break;
-    
-    // default:
-    //     cv::VideoCapture cap(0);
-    //     break;
-    // }
-
-    cv::VideoCapture cap(0);
-
-    if (!cap.isOpened()) {
-        std::cerr << "Error: Couldn't open the webcam." << std::endl;
-        return -1;
+    if (!dist_memory.empty() && std::abs(dist - dist_memory.back()) > 5) {
+        dist_memory.push_back(dist);
+    } else if (dist_memory.empty()) {
+        dist_memory.push_back(dist);
     }
 
-    // Read the first frame
-    cv::Mat frame;
-    cap >> frame;
-
-    // Select a region to track using a bounding box
-    waitKey(1000);
-    cv::Rect2d roi = cv::selectROI("Select ROI", frame, false, false);
-
-    while (true) 
-    {
-        // Initialize the MOSSE tracker
-        Ptr<legacy::TrackerMOSSE> tracker = cv::legacy::TrackerMOSSE::create();
-        tracker->init(frame, roi);
-        
-        // Read a new frame
-        cap >> frame;
-        if (frame.empty())
-            break;
-
-        // Update the tracker with the new frame
-        bool success = tracker->update(frame, roi);
-
-        // Draw the bounding box on the frame
-        if (success)
-            cv::rectangle(frame, roi, cv::Scalar(0, 255, 0), 2);
-        else
-            cv::putText(frame, "Tracking failed", cv::Point(100, 80), cv::FONT_HERSHEY_SIMPLEX, 0.75, cv::Scalar(0, 0, 255), 2);
-
-        int padding = 10;
-        cv::Rect2d uproi(roi.x - padding, roi.y - padding, roi.width + 2 * padding, roi.height + 2 * padding);
-        cv::Rect2d newroi = thresholding(frame, uproi, 150);
-
-        // Display the frame
-        cv::imshow("MOSSE Tracker", frame);
-        cout<<roi.area()<<"\n";
-
-        // Exit the loop if the user presses 'Esc'
-        char key = cv::waitKey(33);
-        if (key == 27) // ASCII code for 'Esc'
-            break;
-
-        // i = i+10;
-        tracker.release();
+    if (dist_memory.size() > max_memory_length) {
+        dist_memory.erase(dist_memory.begin(), dist_memory.end() - max_memory_length);
     }
 
-    // Release the video capture object
-    cap.release();
+    double averageDistance = 0.0;
+    if (!dist_memory.empty()) {
+        double sum = 0.0;
+        for (double distance : dist_memory) {
+            sum += distance;
+        }
+        averageDistance = round(sum / dist_memory.size(), 1);
+    }
 
-    return 0;
+    std::cout << "Calculated Distance: " << dist << std::endl;
+    std::cout << "Average Distance: " << averageDistance << std::endl;
 }

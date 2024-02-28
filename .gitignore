@@ -13,7 +13,7 @@ data/
 /fps_data.csv
 ./CMakeCache.txt
 CMakeFiles/
-.vscode
+.vscode/
 /cmake_install.cmake
 *
 !*.*

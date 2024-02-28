@@ -1,63 +1,138 @@
 import cv2
 import numpy as np
 
-# Initialize webcam
-cap = cv2.VideoCapture("/home/ubuntu/LockIn/videos/helicopter.mp4")  # Use 0 for the default webcam, adjust as needed
+class DistanceTracker:
+    def __init__(self, focal_length=1000, width=16.5, max_memory_length=20):
+        self.focal_length = focal_length
+        self.width = width
+        self.max_memory_length = max_memory_length
+        self.dist_memory = []
+        self.frame_counter = 0
 
-# Initialize feature detector and descriptor
-orb = cv2.ORB_create()
+    def calculate_distance(self, rectangle):
+        pixels = rectangle[1][0]
+        dist = round((self.width * self.focal_length) / pixels, 2)
+        return dist
 
-# Initialize brute-force matcher
-bf = cv2.BFMatcher()
+    def update_distance_memory(self, dist):
+        if len(self.dist_memory) > 0:
+            # Only update if the change is greater than 5cm
+            if abs(dist - self.dist_memory[-1]) > 5:
+                self.dist_memory.append(dist)
+        else:
+            self.dist_memory.append(dist)
 
-# Capture the first frame for reference
-ret, first_frame = cap.read()
-gray_first_frame = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
-kp1, des1 = orb.detectAndCompute(gray_first_frame, None)
+        if len(self.dist_memory) > self.max_memory_length:
+            self.dist_memory = self.dist_memory[-self.max_memory_length:]
 
-while True:
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    
-    # Convert the frame to grayscale
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    def get_average_distance(self):
+        if self.dist_memory:
+            return round(sum(self.dist_memory) / len(self.dist_memory), 1)
+        else:
+            return 0
 
-    # Find keypoints and descriptors
-    kp, des = orb.detectAndCompute(gray_frame, None)
+def main():
+    # seperate_color()
+    distance_tracker = DistanceTracker()
 
-    # Match descriptors with the reference descriptors
-    matches = bf.knnMatch(des1, des, k=2)
+    cap = cv2.VideoCapture(0)
 
-    # Apply ratio test to get good matches
-    good_matches = []
-    for m, n in matches:
-        if m.distance < 0.75 * n.distance:
-            good_matches.append(m)
+    while True:
+        ret, img = cap.read()
+        process(img, distance_tracker)
+        cv2.imshow('frame ', img)
 
-    # Draw matches
-    img_matches = cv2.drawMatches(first_frame, kp1, frame, kp, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-    if len(good_matches) > 4:
-        # Extract matched keypoints
-        src_pts = np.float32([kp1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-        dst_pts = np.float32([kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+    cv2.destroyAllWindows()
 
-        # Use RANSAC to estimate homography
-        H, _ = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
-        # Warp frame into the perspective of the reference image
-        warped_frame = cv2.warpPerspective(frame, H, (first_frame.shape[1], first_frame.shape[0]))
+## PROCESS IS THE
+def process(img, distance_tracker):
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower = np.array([50, 141, 175])
+    upper = np.array([108, 255, 255])
+    mask = cv2.inRange(hsv_img, lower, upper)
+    kernel = np.ones((11, 11), 'uint8')
+    d_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=5)
 
-        # Display results
-        cv2.imshow('Matches', img_matches)
-        cv2.imshow('Warped Frame', warped_frame)
-    else:
-        cv2.imshow('Matches', img_matches)
+    cont, hei = cv2.findContours(d_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cont = sorted(cont, key=cv2.contourArea, reverse=True)[:1]
 
-    # Break the loop if 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    for cnt in cont:
+        if 100 < cv2.contourArea(cnt) < 306000:
+            rect = cv2.minAreaRect(cnt)
+            box = np.int0(cv2.boxPoints(rect))
+            cv2.drawContours(img, [box], -1, (255, 0, 0), 3)
 
-# Release the webcam and close windows
-cap.release()
-cv2.destroyAllWindows()
+            distance = distance_tracker.calculate_distance(rect)
+
+            # Calculate distance every 5 frames
+            if distance_tracker.frame_counter % 5 == 0:
+                distance_tracker.update_distance_memory(distance)
+
+            avg_distance = distance_tracker.get_average_distance()
+            img = cv2.putText(img, f'Distance: {avg_distance} (cm)', (10, 50),
+                              cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+    distance_tracker.frame_counter += 1
+    cv2.imshow('morphed', d_img)
+
+
+## HSV Masking is the
+def seperate_color():
+    cap = cv2.VideoCapture(0)
+    cv2.namedWindow("HSV")
+    cv2.resizeWindow("HSV", 300, 300)
+    cv2.createTrackbar("HUE Min", "HSV", 0, 179, empty)
+    cv2.createTrackbar("HUE Max", "HSV", 179, 179, empty)
+    cv2.createTrackbar("SAT Min", "HSV", 0, 255, empty)
+    cv2.createTrackbar("SAT Max", "HSV", 255, 255, empty)
+    cv2.createTrackbar("VALUE Min", "HSV", 0, 255, empty)
+    cv2.createTrackbar("VALUE Max", "HSV", 255, 255, empty)
+
+    while True:
+        ret, img = cap.read()
+        h_min = cv2.getTrackbarPos("HUE Min", "HSV")
+        h_max = cv2.getTrackbarPos("HUE Max", "HSV")
+        s_min = cv2.getTrackbarPos("SAT Min", "HSV")
+        s_max = cv2.getTrackbarPos("SAT Max", "HSV")
+        v_min = cv2.getTrackbarPos("VALUE Min", "HSV")
+        v_max = cv2.getTrackbarPos("VALUE Max", "HSV")
+
+        hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+
+        lower = np.array([h_min, s_min, v_min])
+        upper = np.array([h_max, s_max, v_max])
+        mask = cv2.inRange(hsv_img, lower, upper)
+        kernel = np.ones((3,3),'uint8')
+
+        d_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel,iterations = 5)
+
+        final_img = resize_final_img(300,300, mask, d_img)
+        # final_img = np.concatenate((mask,d_img,e_img),axis =1)
+        cv2.imshow('F',final_img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            lower = np.array([h_min, s_min, v_min])
+            upper = np.array([h_max, s_max, v_max])
+            break
+
+    cv2.destroyAllWindows()
+
+
+
+# pata nhi kya zarurat thi iski - 1
+def empty(a):
+    pass
+
+# pata nhi kya zarurat thi iski - 2
+def resize_final_img(x,y,*argv):
+    images  = cv2.resize(argv[0], (x, y))
+    for i in argv[1:]:
+        resize = cv2.resize(i, (x, y))
+        images = np.concatenate((images,resize),axis = 1)
+    return images
+
+if __name__ == "__main__":
+    main()
